@@ -44,11 +44,14 @@
  *      5.) The signal operation(V) for nrfull happens at the producer's side.                      *
  *          The signal operation(V) for nrempty happens at consumer's side.                         *
  *                                                                                                  *
+ *       Usage:                                                                                     *
+ *       Compile: gcc -o prod_cons.o prod_cons.c                                                    *
+ *       Run: ./prod_cons.o -p <Number of producers> -c <Number of consumers>                       *
  ****************************************************************************************************/
 
 
-// Size of shared buffer is 5 in this case
-#define N 5
+// Size of shared buffer is 10 in this case
+#define N 10
 
 // A semaphore for waiting on full buffer.
 sem_t nrfull;
@@ -81,7 +84,7 @@ void * producer_func(void *arg){
         sem_wait(&mutexP); // One producer at a time
         sem_wait(&nrempty); // Buffer should be empty for atleast 1 write
         buffer[in] = message; 
-        printf("Producer wrote : %c\n", message);
+        printf("Producer %d wrote : %c\n", (int) arg, message);
         in = (in+1) % N;
         sem_post(&nrfull); // Atleast one value has been written to the buffer
         sem_post(&mutexP); // Allow other producers to come in
@@ -96,7 +99,7 @@ void * consumer_func(void *arg){
         sem_wait(&nrfull); // Initially, nothing to consume nrfull:=0
         message = buffer[out];
         out = (out+1) % N;
-        printf("Consumer consumed: %c \n", message);
+        printf("Consumer %d consumed: %c \n", (int) arg, message);
         sem_post(&nrempty); // there is room for one more character in the buffer
         sem_post(&mutexC);  // Allow other consumers to come in
         sleep(1);           // A second's delay
@@ -108,7 +111,11 @@ void * consumer_func(void *arg){
 int main(int argc, char **argv){
     int opt;
     int nc, np;
-
+    
+    if(argc < 5){ 
+        fprintf(stderr, "Usage: %s -p [number of producers] -c[number of consumers]\n ", argv[0]);
+        exit(EXIT_FAILURE);
+    }
     // parsing commandline options
     while((opt=getopt(argc, argv, "p:c:")) != -1){
         switch(opt){
@@ -119,8 +126,7 @@ int main(int argc, char **argv){
                 nc = atoi(optarg);
                 break;
             default:
-                fprintf(stderr, "Usage: %s [-p [number of producers] \
-                                        -c[number of consumers]\n ", argv[0]);
+                fprintf(stderr, "Usage: %s -p [number of producers] -c[number of consumers]\n ", argv[0]);
                 exit(EXIT_FAILURE);
         }
     }// end parsing command line options
@@ -163,15 +169,11 @@ int main(int argc, char **argv){
         exit(EXIT_FAILURE);
     }// end if
 
-    char *string;
+ 
     // Create different producer threads
     for(i = 0; i < np; i++){
         // Create a producer thread
-        string = (char *) malloc(sizeof(char)*20);
-        if(string == NULL){
-            fprintf(stderr, "Error: Failed to allocate memory");
-        }
-        tret = pthread_create(&producer_thread[i], NULL, producer_func, "Producer 1");
+        tret = pthread_create(&producer_thread[i], NULL, producer_func, (void *) i+1);
         if(tret){
             fprintf(stderr, "Error: Failed to start a new thread");
             exit(EXIT_FAILURE);
@@ -179,9 +181,9 @@ int main(int argc, char **argv){
     }// end for
     
     // Create different consumer threads
-    for(ii = 0; i < nc; i++){
+    for(i = 0; i < nc; i++){
         // Create a consumer thread
-        tret = pthread_create(&consumer_thread[i], NULL, consumer_func, "Consumer 1");
+        tret = pthread_create(&consumer_thread[i], NULL, consumer_func, (void *) i+1);
         if(tret){
             fprintf(stderr, "Error: Failed to start a new thread");
             exit(EXIT_FAILURE);
@@ -189,8 +191,10 @@ int main(int argc, char **argv){
     }// end for
     
    
-    pthread_join(producer_thread, NULL);
-    pthread_join(consumer_thread, NULL);
+    for(i=0; i<np; i++)
+        pthread_join(producer_thread[i], NULL);
+    for(i=0; i<nc; i++)
+        pthread_join(consumer_thread[i], NULL);
     return 0;
 }
 
