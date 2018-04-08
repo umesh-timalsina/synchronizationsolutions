@@ -48,7 +48,9 @@ int read(event_count_t *ec){
     return ec->E;
 }// end read
 
+void await(event_count_t *ec, int v){
 
+}// end await
 
 // The main method
 int main(){
