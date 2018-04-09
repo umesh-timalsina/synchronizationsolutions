@@ -13,4 +13,6 @@ In the directory sequencers and event counts there are following files:
 
 * prodcons_eventcounts.c: Demonstrates the use of sequencers and eventcounts for producer consumer problem in thread synchronization.
 
+* File: q4_exam.c: An alternative solution to weak reader preference solution.
 
+* File: q3c_exam.c: A sychronization solution using semaphores only for simultanous access to files

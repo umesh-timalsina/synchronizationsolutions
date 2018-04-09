@@ -5,8 +5,8 @@
 #include<unistd.h>
 #include<pthread.h>
 #include<fcntl.h>
-
-#define N 10 // Number of threads
+#include<sys/types.h>
+#define N 5// Number of threads
 
 void *thread_func(void *);
 /****************************************************************************************************
@@ -24,7 +24,7 @@ int sum=0; // The sum of all entering threadIDs
 int waiting = 0;    // The number of processes waiting
 sem_t fd_mutex;     // A semaphore for waiting on the File descriptor
 sem_t sum_mutex;    // A semaphore for altering the value of sum.
-char buf[500];      // A buffer to store read content
+char buf[50];      // A buffer to store read content
 void * thread_func(void *arg){
     while(1){
         /* This part for getting access to the file */
@@ -41,8 +41,9 @@ void * thread_func(void *arg){
 
         /* File Access Code goes here */
         printf("Thread %d can access the file now and is..\n", (int)arg);   // Get Regular Access to the File
-        read(fd, buf, 50);
+        int fbytes = read(fd, buf, 50);
         printf("%s\n", buf);
+        lseek(fd, (-1*fbytes), SEEK_END);
         int i;
         sem_wait(&sum_mutex);       // Wait till we decrease the value
         sum -= (int) arg;
